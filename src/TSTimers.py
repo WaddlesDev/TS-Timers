@@ -1,4 +1,3 @@
-# filepath: TSTimers/src/TSTimers.py
 import tkinter as tk
 from tkinter import Canvas
 import time
@@ -12,7 +11,7 @@ except ImportError:
     winsound = None
 
 class TimerWidget:
-    def __init__(self, master, name, interval_sec, theme):
+    def __init__(self, master, name, interval_sec):
         self.master = master
         self.name = name
         self.interval = interval_sec
@@ -21,7 +20,6 @@ class TimerWidget:
         self.enabled = True
         self.canvas_size = 150
         self.sound_thread = None
-        self.theme = theme  # Reference to theme dict
 
         self.countdown_seconds = 0
         self.countdown_active = False
@@ -42,15 +40,14 @@ class TimerWidget:
         self.toggle_button = tk.Checkbutton(self.frame, text="Enabled", variable=self.toggle_var, command=self.toggle_enabled)
         self.toggle_button.pack(side=tk.LEFT, padx=5)
 
+        # Pack countdown label AFTER the buttons, only for "Work"
         if self.name.lower() == "work":
-            self.countdown_label = tk.Label(self.frame, text="", font=("Arial", 14), fg=self.theme['text'])
+            self.countdown_label = tk.Label(self.frame, text="", font=("Arial", 14), fg="black")
             self.countdown_label.pack(pady=(5,10))
         else:
             self.countdown_label = None
 
         self.frame.pack(padx=20, pady=20)
-
-        self.apply_theme()  # Apply initial theme
 
         self.update()
 
@@ -63,7 +60,7 @@ class TimerWidget:
         self.countdown_seconds = 0
         if self.countdown_label:
             self.countdown_label.config(text="")
-        self.canvas.config(bg=self.theme['canvas_bg'])
+        self.canvas.config(bg=self.master.cget("bg"))
 
     def toggle_enabled(self):
         self.enabled = self.toggle_var.get()
@@ -74,13 +71,14 @@ class TimerWidget:
             if winsound:
                 winsound.Beep(440, 200)  # Softer tone
             else:
+                # macOS/Linux alternative with softer tone
                 os.system('play -nq -t alsa synth 0.2 sine 440')
             time.sleep(1)
 
     def start_countdown(self):
         if self.countdown_label is None:
             return
-        self.countdown_seconds = int(self.interval / 2)  # Half timer duration
+        self.countdown_seconds = int(self.interval / 2)  # Half the timer duration
         self.countdown_active = True
         self.countdown_finished = False
         self.update_countdown()
@@ -110,15 +108,16 @@ class TimerWidget:
         self.canvas.delete("all")
 
         if self.complete:
-            flash_color = self.theme['accent'] if int(now * 2) % 2 == 0 else self.theme['canvas_bg']
+            flash_color = "#ff0000" if int(now * 2) % 2 == 0 else "#222"
             self.canvas.create_oval(10, 10, self.canvas_size - 10, self.canvas_size - 10, fill=flash_color, outline="")
+            # Only start countdown if not active and countdown not finished
             if self.countdown_label and not self.countdown_active and not self.countdown_finished:
                 self.start_countdown()
         else:
-            self.canvas.create_oval(10, 10, self.canvas_size - 10, self.canvas_size - 10, fill=self.theme['canvas_fill'], outline="")
+            self.canvas.create_oval(10, 10, self.canvas_size - 10, self.canvas_size - 10, fill="white", outline="")
             if percent > 0:
                 self.canvas.create_arc(10, 10, self.canvas_size - 10, self.canvas_size - 10,
-                                       start=90, extent=-angle, fill=self.theme['arc_fill'], outline="")
+                                       start=90, extent=-angle, fill="#222", outline="")
 
         if percent >= 1 and not self.complete:
             self.complete = True
@@ -128,98 +127,43 @@ class TimerWidget:
 
         self.master.after(100, self.update)
 
-    def apply_theme(self):
-        self.frame.config(bg=self.theme['bg'])
-        self.label.config(bg=self.theme['bg'], fg=self.theme['text'])
-        self.canvas.config(bg=self.theme['canvas_bg'])
-        self.button.config(bg=self.theme['button_bg'], fg=self.theme['button_fg'], activebackground=self.theme['button_active_bg'])
-        self.toggle_button.config(bg=self.theme['bg'], fg=self.theme['text'], selectcolor=self.theme['bg'])
-        if self.countdown_label:
-            self.countdown_label.config(bg=self.theme['bg'], fg=self.theme['text'])
-
-
-class TacoshackTimersApp:
-    def __init__(self, root):
-        self.root = root
-        root.title("Tacoshack Timers")
-
-        self.light_theme = {
-            'bg': 'white',
-            'text': 'black',
-            'canvas_bg': 'white',
-            'canvas_fill': '#222',
-            'arc_fill': 'white',
-            'button_bg': 'SystemButtonFace',
-            'button_fg': 'black',
-            'button_active_bg': '#ddd',
-            'accent': '#10a37f',  # For flash color in light mode
-        }
-
-        self.dark_theme = {
-            'bg': '#0a0a0a',             # ChatGPT very dark background
-            'text': '#d3d3d3',           # Light gray text
-            'canvas_bg': '#0a0a0a',      # Same as bg
-            'canvas_fill': '#262626',    # Dark gray fill for circle bg
-            'arc_fill': '#10a37f',       # Teal-ish arc fill
-            'button_bg': '#262626',      # Darker gray for buttons
-            'button_fg': '#d3d3d3',      # Light text on buttons
-            'button_active_bg': '#3a3a3a', # Slightly lighter on press
-            'accent': '#10a37f',         # Accent teal for flashing circle
-        }
-
-        self.theme = self.light_theme
-
-        # Set root bg initially
-        self.root.config(bg=self.theme['bg'])
-
-        self.top_frame = tk.Frame(root, bg=self.theme['bg'])  # Store as instance variable
-        self.top_frame.pack(fill=tk.X, pady=10)
-
-        self.title_label = tk.Label(self.top_frame, text="Tacoshack Timers", font=("Arial", 24, "bold"),
-                                    bg=self.theme['bg'], fg=self.theme['text'])
-        self.title_label.pack(side=tk.LEFT, padx=20)
-
-        self.spacer = tk.Frame(self.top_frame, bg=self.theme['bg'])  # Store as instance variable
-        self.spacer.pack(side=tk.LEFT, fill=tk.X, expand=True)
-
-        self.toggle_theme_button = tk.Button(self.top_frame, text="Toggle Dark Theme", command=self.toggle_theme,
-                                            bg=self.theme['button_bg'], fg=self.theme['button_fg'], activebackground=self.theme['button_active_bg'])
-        self.toggle_theme_button.pack(side=tk.RIGHT, padx=20)
-
-        self.container = tk.Frame(root, bg=self.theme['bg'])
-        self.container.pack(padx=20, pady=20)
-
-        timer_configs = [
-            ("Tips", 5 * 60),
-            ("Work", 10 * 60),
-            ("Overtime", 30 * 60)
-        ]
-
-        self.timers = {}
-        for name, seconds in timer_configs:
-            widget = TimerWidget(self.container, name, seconds, self.theme)
-            widget.frame.pack(side=tk.LEFT, expand=True, fill=tk.BOTH)
-            self.timers[name.lower()] = widget
-
-    def toggle_theme(self):
-        self.theme = self.dark_theme if self.theme == self.light_theme else self.light_theme
-
-        self.root.config(bg=self.theme['bg'])
-        self.top_frame.config(bg=self.theme['bg'])      # Update top_frame
-        self.spacer.config(bg=self.theme['bg'])         # Update spacer
-        self.container.config(bg=self.theme['bg'])
-
-        self.title_label.config(bg=self.theme['bg'], fg=self.theme['text'])
-        self.toggle_theme_button.config(bg=self.theme['button_bg'], fg=self.theme['button_fg'], activebackground=self.theme['button_active_bg'])
-
-        for timer in self.timers.values():
-            timer.theme = self.theme
-            timer.apply_theme()
-
-
 def main():
     root = tk.Tk()
-    app = TacoshackTimersApp(root)
+    root.title("Tacoshack Timers")
+
+    title_label = tk.Label(root, text="Tacoshack Timers", font=("Arial", 24, "bold"))
+    title_label.pack(pady=10, anchor='center')
+
+    # Create a container frame to hold all timers centered horizontally
+    container = tk.Frame(root)
+    container.pack(padx=20, pady=20)
+
+    timer_configs = [
+        ("Tips", 5 * 60),
+        ("Work", 10 * 60),
+        ("Overtime", 30 * 60)
+    ]
+
+    timers = {}
+    for name, seconds in timer_configs:
+        widget = TimerWidget(container, name, seconds)
+        widget.frame.pack(side=tk.LEFT, expand=True, fill=tk.BOTH)
+        timers[name.lower()] = widget
+
+    def on_key_press(event):
+        key_input = event.char.strip().lower()
+        if key_input == '/':
+            buffer.clear()
+        elif key_input and len(buffer) < 20:
+            buffer.append(key_input)
+            command = ''.join(buffer)
+            if command in timers:
+                timers[command].reset()
+                buffer.clear()
+
+    buffer = []
+    root.bind("<Key>", on_key_press)
+
     root.mainloop()
 
 if __name__ == '__main__':
